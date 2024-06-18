@@ -31,6 +31,17 @@
 </div>
 
 <?php
+// Iniciar o reanudar la sesión
+session_start();
+
+// Verificar y manejar el cierre de sesión
+if (isset($_POST['cerrarSesion'])) {
+    session_unset(); // Limpiar todas las variables de sesión
+    session_destroy(); // Destruir la sesión
+    header('Location: index.php'); // Redirigir para evitar reenvío del formulario
+    exit;
+}
+
 // Función para almacenar la información ingresada por el usuario en un array asociativo
 function almacenarProducto($nombre, $precio, $cantidad) {
     return array(
@@ -76,35 +87,44 @@ function mostrarProductos($productos) {
     </div>';
 }
 
-// Procesar formulario si se envía
+// Procesar el formulario y manejar la lógica de ingreso de producto
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $nombre = $_POST["nombre"];
-    $precio = $_POST["precio"];
-    $cantidad = $_POST["cantidad"];
+    // Verificar si existe el array de productos en la sesión
+    if (!isset($_SESSION['productos'])) {
+        $_SESSION['productos'] = array(); // Inicializar como un array vacío si no existe
+    }
     
+    // Obtener datos del formulario
+    $nombre = isset($_POST["nombre"]) ? $_POST["nombre"] : '';
+    $precio = isset($_POST["precio"]) ? $_POST["precio"] : '';
+    $cantidad = isset($_POST["cantidad"]) ? $_POST["cantidad"] : '';
+    
+    // Validar y almacenar el producto si todos los campos están completos
     if ($nombre && $precio && $cantidad !== "") { // Verificamos que cantidad no esté vacío (incluyendo '0')
         $producto = almacenarProducto($nombre, $precio, $cantidad);
         
-        // Inicializamos un array para almacenar productos ingresados
-        $productos = [];
-
-        // Verificamos si ya existe la sesión para mantener productos ingresados
-        if (isset($_SESSION['productos'])) {
-            $productos = $_SESSION['productos'];
-        }
-
-        // Agregamos el producto actual al array de productos
-        $productos[] = $producto;
-
-        // Almacenamos los productos en la sesión
-        $_SESSION['productos'] = $productos;
-
-        // Mostramos todos los productos ingresados hasta ahora
-        mostrarProductos($productos);
+        // Agregar el nuevo producto al array de productos en la sesión
+        $_SESSION['productos'][] = $producto;
+        
+        // Refrescar la página para mostrar el producto ingresado
+        header('Location: index.php');
+        exit;
     } else {
         echo '<div class="max-w-lg mx-auto bg-white p-8 mt-6 rounded shadow-md text-red-500 text-center">Debe ingresar todos los campos correctamente.</div>';
     }
 }
+
+// Mostrar productos solo si existe la sesión y hay productos almacenados
+if (isset($_SESSION['productos']) && !empty($_SESSION['productos'])) {
+    mostrarProductos($_SESSION['productos']);
+}
+
+// Botón para cerrar sesión
+echo '<div class="max-w-lg mx-auto bg-white p-8 mt-6 rounded shadow-md text-center">
+        <form method="post" action="">
+            <button type="submit" name="cerrarSesion" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">Cerrar Sesión</button>
+        </form>
+    </div>';
 ?>
 
 <script src="./js/main.js"></script>
